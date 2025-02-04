@@ -77,96 +77,172 @@ async function fetchTodos() {
       alert(data.error || 'Failed to fetch to-dos');
     }
   }
-  async function toggleComplete(todoElement, todoId, currentStatus) {
-    const token = getAuthToken();  
-
+  async function toggleCompleteStatus(id, todoElement) {
+    const token = getAuthToken();
     if (!token) {
       alert('Please log in first.');
       return;
     }
-
-    const newStatus = !currentStatus; 
-
-    const response = await fetch(`${apiUrl}/todos/${todoId}`, {
-        method: 'PUT',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ completed: newStatus }),  
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-       
-        todoElement.style.textDecoration = data.completed ? 'line-through' : 'none';
-    } else {
-        alert(data.error || 'Failed to update to-do status');
-    }
-}
   
-function displayTodos(todos) {
-  const todoItems = document.getElementById('todoItems');
-  todoItems.innerHTML = '';  
-
-  if (todos.length === 0) {
-      todoItems.innerHTML = '<li>No to-dos available. Start by adding one!</li>';
-  } else {
-      todos.forEach(todo => {
-          const todoElement = document.createElement('li');
-          const titleElement = document.createElement('span');
-          titleElement.textContent = todo.title;
-          if (todo.completed) {
-              titleElement.style.textDecoration = 'line-through';
-          }
-          todoElement.addEventListener('click', () => toggleComplete(titleElement, todo.id, todo.completed));
-          todoElement.appendChild(titleElement);
-          const deleteBtn = document.createElement('button');
-          deleteBtn.classList.add('delete-btn');
-          deleteBtn.textContent = 'Delete';
-          deleteBtn.onclick = (e) => {
-              e.stopPropagation();  
-              deleteTodo(todo.id);
-          };
-          todoElement.appendChild(deleteBtn);
-          todoItems.appendChild(todoElement);
-      });
-  }
-}
+    const isCompleted = todoElement.style.backgroundColor === 'green';
   
-  async function createTodo() {
-    const token = getAuthToken();  
-    const title = document.getElementById('todoTitle').value.trim();
-  
-    if (!token) {
-      alert('You must be logged in to create a to-do');
-      return;
-    }
-  
-    if (!title) {
-      alert('Please enter a title for the to-do');
-      return;
-    }
-  
-    const response = await fetch(`${apiUrl}/todos`, {
-      method: 'POST',
+    const response = await fetch(`${apiUrl}/todos/${id}`, {
+      method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ title, description: '' }), 
+      body: JSON.stringify({ completed: !isCompleted }),  
     });
   
-    const data = await response.json();
-  
     if (response.ok) {
-      fetchTodos(); 
-      document.getElementById('todoTitle').value = '';
+      const todo = await response.json(); 
+      if (todo.completed) {
+        todoElement.style.backgroundColor = 'green';  
+        todoElement.querySelector('span').style.textDecoration = 'line-through'; 
+      } else {
+        todoElement.style.backgroundColor = '';  
+        todoElement.querySelector('span').style.textDecoration = '';  
+      }
     } else {
-      alert(data.error || 'Failed to create to-do');
+      const data = await response.json();
+      alert(data.error || 'Failed to toggle completion status');
     }
   }
+  function displayTodos(todos) {
+    const todoItems = document.getElementById('todoItems');
+    todoItems.innerHTML = '';  
+  
+    if (todos.length === 0) {
+      todoItems.innerHTML = '<li>No to-dos available. Start by adding one!</li>';
+    } else {
+      todos.forEach(todo => {
+        const todoElement = document.createElement('li');
+        const titleElement = document.createElement('span');
+        const descElement = document.createElement('p');
+        
+        titleElement.textContent = todo.title;
+        descElement.textContent = todo.description;
+  
+        if (todo.completed) {
+          titleElement.style.textDecoration = 'line-through';
+          todoElement.style.backgroundColor = 'green';
+        }
+  
+        todoElement.addEventListener('click', () => toggleComplete(titleElement, todo.id, todo.completed));
+  
+        todoElement.appendChild(titleElement);
+        todoElement.appendChild(descElement);
+  
+        const buttonWrapper = document.createElement('div');
+        buttonWrapper.classList.add('button-wrapper');
+        
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => editTodo(todo.id, todo.title, todo.description);
+  
+        const deleteBtn = document.createElement('button');
+        deleteBtn.classList.add('delete-btn');
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.onclick = (e) => {
+          e.stopPropagation();  
+          deleteTodo(todo.id);
+        };
+  
+        const completeBtn = document.createElement('button');
+completeBtn.classList.add('complete-btn');
+completeBtn.innerHTML = '<i class="fa fa-check"></i>'; 
+completeBtn.onclick = (e) => {
+  e.stopPropagation();  
+  toggleCompleteStatus(todo.id, todoElement); 
+};
+  
+        buttonWrapper.appendChild(completeBtn);
+        buttonWrapper.appendChild(editBtn);
+        buttonWrapper.appendChild(deleteBtn);
+  
+        todoElement.appendChild(buttonWrapper);
+  
+        todoItems.appendChild(todoElement);
+      });
+    }
+  }
+let currentEditId = null; 
+
+function openEditModal(id, title, description) {
+  currentEditId = id;
+  document.getElementById("editTitle").value = title;
+  document.getElementById("editDescription").value = description;
+  document.getElementById("editModal").style.display = "flex"; 
+}
+
+function editTodo(id, currentTitle, currentDescription) {
+  const newTitle = prompt('Edit Title:', currentTitle);
+  const newDescription = prompt('Edit Description:', currentDescription);
+
+  if (newTitle !== null && newDescription !== null) {
+      updateTodo(id, newTitle, newDescription);
+  }
+}
+
+async function updateTodo(id, title, description) {
+  const token = getAuthToken();
+  if (!token) {
+      alert('Please log in first.');
+      return;
+  }
+
+  const response = await fetch(`${apiUrl}/todos/${id}`, {
+      method: 'PUT',
+      headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, description }),
+  });
+
+  if (response.ok) {
+      fetchTodos();  
+  } else {
+      const data = await response.json();
+      alert(data.error || 'Failed to update to-do');
+  }
+}
+async function createTodo() {
+  const token = getAuthToken();  
+  const title = document.getElementById('todoTitle').value.trim();
+  const description = document.getElementById('todoDescription').value.trim();
+
+  if (!token) {
+    alert('You must be logged in to create a to-do');
+    return;
+  }
+
+  if (!title || !description) {
+    alert('Please enter both a title and a description for the to-do');
+    return;
+  }
+
+  const response = await fetch(`${apiUrl}/todos`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ title, description }),  
+  });
+
+  const data = await response.json();
+
+  if (response.ok) {
+    fetchTodos(); 
+    document.getElementById('todoTitle').value = '';
+    document.getElementById('todoDescription').value = '';
+  } else {
+    alert(data.error || 'Failed to create to-do');
+  }
+}
+
   async function deleteTodo(id) {
     const token = getAuthToken(); 
     if (!token) {
