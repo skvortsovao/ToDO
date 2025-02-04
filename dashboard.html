@@ -4,16 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+
     <title>To Do Dashboard</title>
 </head>
 <body>
     <div id="todoList" class="todo-list">
         <h3>Your To-Do List</h3>
-        <div class="todo-input">
-            <input type="text" id="todoTitle" placeholder="Enter a new to-do" />
-            <button onclick="createTodo()">Add Todo</button>
+        <div id="todoSection" style="display: block;">
+            
+            <input type="text" id="todoTitle" placeholder="Task Title" required>
+            <input type="text" id="todoDescription" placeholder="Task Description" required>
+            <button onclick="createTodo()" id="buttonAdd">Add Task</button>
+
+            <ul id="todoItems"></ul>
         </div>
-        <ul id="todoItems"></ul>
+    </div>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h3>Edit To-Do</h3>
+            <input type="text" id="editTitle" placeholder="Edit Title">
+            <input type="text" id="editDescription" placeholder="Edit Description">
+            <button onclick="saveEdit()">Save Changes</button>
+        </div>
     </div>
 
     <script src="file.js"></script>
